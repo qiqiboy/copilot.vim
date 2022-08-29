@@ -377,7 +377,7 @@ function! s:UpdatePreview() abort
         call prop_add(line('.'), 0, {'type': s:hlgroup, 'text_align': 'below', 'text': line})
       endfor
       if !empty(annot)
-        call prop_add(line('.'), col('$'), {'type': s:annot_hlgroup, 'text': ' ' . annot[1][0]})
+        call prop_add(line('.'), col('$'), {'type': s:annot_hlgroup, 'text': ' ' . annot})
       endif
     endif
     if uuid !=# get(s:, 'uuid', '')
