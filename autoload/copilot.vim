@@ -173,8 +173,11 @@ function! s:BufferDisabled() abort
     return empty(b:copilot_enabled) ? 4 : 0
   endif
   let short = empty(&l:filetype) ? '.' : split(&l:filetype, '\.', 1)[0]
-  let config = get(g:, 'copilot_filetypes', {})
-  if type(config) == v:t_dict && has_key(config, &l:filetype)
+  let config = {}
+  if type(get(g:, 'copilot_filetypes')) == v:t_dict
+    let config = g:copilot_filetypes
+  endif
+  if has_key(config, &l:filetype)
     return empty(config[&l:filetype])
   elseif has_key(config, short)
     return empty(config[short])
@@ -413,7 +416,7 @@ function! copilot#Schedule(...) abort
   if !s:has_ghost_text || !copilot#Enabled() || !copilot#IsMapped()
     return
   endif
-  let delay = a:0 ? a:1 : get(g:, 'copilot_idle_delay', 75)
+  let delay = a:0 ? a:1 : get(g:, 'copilot_idle_delay', 15)
   let g:_copilot_timer = timer_start(delay, function('s:Trigger', [bufnr('')]))
 endfunction
 
