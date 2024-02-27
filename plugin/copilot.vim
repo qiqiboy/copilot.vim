@@ -62,7 +62,8 @@ augroup github_copilot
   autocmd VimEnter             * call s:MapTab()
   autocmd BufUnload            * call s:Event('BufUnload')
   autocmd VimLeavePre          * call s:Event('VimLeavePre')
-  autocmd BufReadCmd copilot://* setlocal buftype=nofile bufhidden=wipe nobuflisted readonly nomodifiable
+  autocmd BufReadCmd copilot://* setlocal buftype=nofile bufhidden=wipe nobuflisted nomodifiable
+  autocmd BufReadCmd copilot:///log call copilot#logger#BufReadCmd() | setfiletype copilotlog
 augroup END
 
 call s:ColorScheme()
@@ -96,7 +97,7 @@ if !get(g:, 'copilot_no_maps')
       imap <M-Right> <Plug>(copilot-accept-word)
     endif
     if empty(mapcheck('<M-C-Right>', 'i'))
-      imap <M-Down> <Plug>(copilot-accept-line)
+      imap <M-C-Right> <Plug>(copilot-accept-line)
     endif
   finally
     if exists('s:restore_encoding')
