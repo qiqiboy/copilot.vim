@@ -44,7 +44,7 @@ function! s:StatusNotification(params, ...) abort
 endfunction
 
 function! copilot#Init(...) abort
-  call timer_start(0, { _ -> exists('s:agent') || s:Start() })
+  call copilot#util#Defer({ -> exists('s:agent') || s:Start() })
 endfunction
 
 function! s:Running() abort
@@ -432,18 +432,29 @@ function! copilot#Schedule(...) abort
   let g:_copilot_timer = timer_start(delay, function('s:Trigger', [bufnr('')]))
 endfunction
 
-function! s:SyncTextDocument(bufnr, ...) abort
+function! s:Attach(bufnr, ...) abort
   try
-    return copilot#Agent().SyncTextDocument(a:bufnr)
+    return copilot#Agent().Attach(a:bufnr)
   catch
     call copilot#logger#Exception()
   endtry
 endfunction
 
 function! copilot#OnFileType() abort
-  if empty(s:BufferDisabled())
-    call timer_start(0, function('s:SyncTextDocument', [bufnr('')]))
+  if empty(s:BufferDisabled()) && &l:modifiable && &l:buflisted
+    call copilot#util#Defer(function('s:Attach'), bufnr(''))
   endif
+endfunction
+
+function! s:Focus(bufnr, ...) abort
+  if s:Running() && copilot#Agent().IsAttached(a:bufnr)
+    call copilot#Agent().Notify('textDocument/didFocus', {'textDocument': {'uri': copilot#Agent().Attach(a:bufnr).uri}})
+  endif
+endfunction
+
+function! copilot#OnBufEnter() abort
+  let bufnr = bufnr('')
+  call copilot#util#Defer(function('s:Focus'), bufnr)
 endfunction
 
 function! copilot#OnInsertLeave() abort
@@ -492,7 +503,11 @@ function! copilot#Accept(...) abort
     if empty(text)
       let text = s.text
     endif
-    call copilot#Request('notifyAccepted', {'uuid': s.uuid, 'acceptedLength': copilot#doc#UTF16Width(text)})
+    let acceptance = {'uuid': s.uuid}
+    if text !=# s.text
+      let acceptance.acceptedLength = copilot#doc#UTF16Width(text)
+    endif
+    call copilot#Request('notifyAccepted', acceptance)
     call s:ClearPreview()
     let s:suggestion_text = text
     return repeat("\<Left>\<Del>", s.outdentSize) . repeat("\<Del>", s.deleteSize) .
@@ -661,8 +676,14 @@ function! s:commands.setup(opts) abort
   if has_key(data, 'verificationUri')
     let uri = data.verificationUri
     if has('clipboard')
-      let @+ = data.userCode
-      let @* = data.userCode
+      try
+        let @+ = data.userCode
+      catch
+      endtry
+      try
+        let @* = data.userCode
+      catch
+      endtry
     endif
     let codemsg = "First copy your one-time code: " . data.userCode . "\n"
     try
